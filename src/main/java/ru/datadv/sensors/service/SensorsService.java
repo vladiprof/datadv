@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
@@ -34,17 +33,15 @@ public class SensorsService implements ISensorsService {
 
 	@Override
 	public void save(SensorState sensorState) throws InterruptedException, ExecutionException {
-		FutureTask<Object> saveTask = new FutureTask<Object>(() -> repository.save(sensorState));
-		taskExecutor.execute(saveTask);
+		taskExecutor.execute(() -> repository.save(sensorState));
 
 		SensorStatistics objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
 		if (objectSensorsStates == null) {
-			objectSensorsStates = currentSensorsStates.putIfAbsent(sensorState.getObjectId(), new SensorStatistics());
+			currentSensorsStates.putIfAbsent(sensorState.getObjectId(), new SensorStatistics());
+			objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
 		}
-
+	
 		objectSensorsStates.UpdateSensorState(sensorState);
-
-		saveTask.get();
 	}
 
 	@Override
