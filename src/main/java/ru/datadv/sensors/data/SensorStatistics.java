@@ -16,7 +16,7 @@ public class SensorStatistics {
 		stateLock = new StampedLock();
 		currentSensorsStates = new HashMap<Integer, SensorState>();
 	}
-	
+
 	public void UpdateSensorState(SensorState newState) {
 		long stamp = stateLock.writeLock();
 
