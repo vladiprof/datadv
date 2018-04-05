@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
@@ -22,7 +24,7 @@ public class SensorsService implements ISensorsService {
 	private ConcurrentHashMap<Integer, SensorStatistics> currentSensorsStates;
 
 	public SensorsService() {
-		currentSensorsStates = new ConcurrentHashMap<Integer, SensorStatistics>();
+		currentSensorsStates = new ConcurrentHashMap<Integer, SensorStatistics>();	
 	}
 
 	@Autowired
@@ -31,17 +33,17 @@ public class SensorsService implements ISensorsService {
 	@Autowired
 	private SensorsRepository repository;
 
+	@PostConstruct
+	public void LoadSensorsStates() {
+		repository.getLastSensorsStates().forEach((sensorState) -> {
+			updateSensorState(sensorState);
+		});
+	}
+	
 	@Override
 	public void save(SensorState sensorState) throws InterruptedException, ExecutionException {
 		taskExecutor.execute(() -> repository.save(sensorState));
-
-		SensorStatistics objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
-		if (objectSensorsStates == null) {
-			currentSensorsStates.putIfAbsent(sensorState.getObjectId(), new SensorStatistics());
-			objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
-		}
-	
-		objectSensorsStates.UpdateSensorState(sensorState);
+		updateSensorState(sensorState);
 	}
 
 	@Override
@@ -71,4 +73,13 @@ public class SensorsService implements ISensorsService {
 		return result;
 	}
 
+	private void updateSensorState(SensorState sensorState) {
+		SensorStatistics objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
+		if (objectSensorsStates == null) {
+			currentSensorsStates.putIfAbsent(sensorState.getObjectId(), new SensorStatistics());
+			objectSensorsStates = currentSensorsStates.get(sensorState.getObjectId());
+		}
+	
+		objectSensorsStates.UpdateSensorState(sensorState);
+	}	
 }
